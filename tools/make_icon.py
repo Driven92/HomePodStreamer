@@ -128,14 +128,46 @@ def draw_icon(size: int) -> Image.Image:
     return base.resize((size, size), Image.LANCZOS)
 
 
+def _dib_frame(im: Image.Image) -> bytes:
+    """把一帧转成 ICO 用的 BMP/DIB 数据（32bpp BGRA，自下而上 + AND 掩码）。
+
+    **为什么必须有 DIB 帧**：Windows 的经典图标加载器（`ImageList_ReplaceIcon`、
+    资源管理器列表视图、任务栏、文件对话框）只认 BMP 帧；PNG 压缩帧官方仅支持
+    256×256 这一档。整包都是 PNG 时，小尺寸图标会加载失败，Explorer 直接退化成
+    通用文件图标（表现为"exe 图标没生效"，但 exe 里其实有图标资源）。
+    """
+    arr = np.array(im.convert("RGBA"), dtype=np.uint8)      # 上到下
+    flipped = arr[::-1]                                     # ICO 是自下而上存
+    bgra = np.ascontiguousarray(flipped[:, :, [2, 1, 0, 3]]).tobytes()
+
+    # AND 掩码：1 表示透明（与 alpha=0 对应），每行按 4 字节对齐
+    bits = np.packbits(flipped[:, :, 3] == 0, axis=1)       # (h, ceil(w/8))
+    pad = (-bits.shape[1]) % 4
+    if pad:
+        bits = np.pad(bits, ((0, 0), (0, pad)))
+    mask = np.ascontiguousarray(bits).tobytes()
+
+    h, w = arr.shape[:2]
+    header = struct.pack("<IiiHHIIiiII", 40, w, h * 2, 1, 32, 0, 0, 0, 0, 0, 0)
+    return header + bgra + mask
+
+
 def write_ico(path: Path, images: list[Image.Image]) -> None:
-    """手写 ICO：每个尺寸塞入各自绘制好的 PNG，避免 PIL 统一缩放导致的糊边。"""
+    """手写 ICO，每帧用各自绘制好的位图（不做 PIL 的统一缩放，避免糊边）。
+
+    帧格式按尺寸区分：
+    - 256×256 → PNG（体积从 256 KB 降到 ~26 KB，Vista 起官方支持）
+    - 其余尺寸 → BMP/DIB（Windows 各壳层都能加载，小图标才显示得出来）
+    """
     blobs = []
     for im in images:
-        import io
-        buf = io.BytesIO()
-        im.save(buf, format="PNG", optimize=True)
-        blobs.append((im.width, im.height, buf.getvalue()))
+        if im.width >= 256:
+            import io
+            buf = io.BytesIO()
+            im.save(buf, format="PNG", optimize=True)
+            blobs.append((im.width, im.height, buf.getvalue()))
+        else:
+            blobs.append((im.width, im.height, _dib_frame(im)))
 
     n = len(blobs)
     header = struct.pack("<HHH", 0, 1, n)
