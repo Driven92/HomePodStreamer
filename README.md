@@ -1,5 +1,9 @@
 # HomePod Streamer
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-lightgrey)
+![Python](https://img.shields.io/badge/python-3.13-blue)
+
 把 Windows 正在播放的声音，实时投送到 HomePod（AirPlay 2 / RAOP）。
 
 系统音频 → WASAPI 环回采集 → 44.1 kHz 立体声 PCM → ChaCha20 加密 RTP → HomePod。
@@ -96,6 +100,10 @@ but 3 were given`，表现却是「界面显示正在投送、但完全没声音
 
 在 Windows 10/11 + HomePod（AudioAccessory5,1，固件 27.0）上验证通过。
 理论上兼容所有支持 RAOP 的 AirPlay 2 音箱，但未逐台测试。
+
+## 许可证
+
+[MIT License](LICENSE) © 2026 Driven92 — 可自由使用、修改、分发、商用，保留版权声明即可。
 
 ## 说明
 
