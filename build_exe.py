@@ -166,6 +166,14 @@ def build(version: str, clean: bool) -> Path:
     ]
     if clean:
         args.insert(0, "--clean")
+
+    # 应用图标：既作为 exe 的文件图标，也随包分发供窗口/托盘运行时加载
+    ico = ROOT / "assets" / "icon.ico"
+    if ico.is_file():
+        args += ["--icon", str(ico), "--add-data", f"{ico};assets"]
+    else:
+        print("[warn] 未找到 assets/icon.ico，本次打包不带图标（可跑 tools/make_icon.py 生成）")
+
     for mod in _HIDDEN_QT:
         args += ["--hidden-import", mod]
     for mod in _EXCLUDE_QT:

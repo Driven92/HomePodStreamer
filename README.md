@@ -1,5 +1,7 @@
 # HomePod Streamer
 
+<img src="assets/icon.png" width="88" align="right" alt="应用图标">
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-lightgrey)
 ![Python](https://img.shields.io/badge/python-3.13-blue)
@@ -58,6 +60,14 @@ python build_exe.py --no-clean      # 复用编译缓存，快一半
 产物是 **单目录** 形态（`HomePodStreamer.exe` + `_internal\`），不解压到 `%TEMP%`，
 启动快、不产生临时垃圾。注意 exe 和 `_internal` 目录必须在一起，不能只拷 exe。
 
+应用图标由 `tools/make_icon.py` 用 Pillow 现画（不是外部素材）：同一份几何按三种画法适配
+小尺寸（16~24px 只留剪影、32~48px 加声波、64px↑ 才上网罩圆点），输出 10 个尺寸的 `assets/icon.ico`。
+打包时它既写进 exe 的文件图标，也随包分发供窗口与托盘运行时加载。改了图标就重跑：
+
+```bash
+python tools/make_icon.py     # 需要 pillow
+```
+
 版本号只在 `homepod_streamer/version.py` 里改一处，会自动同步到窗口标题、界面右下角、托盘「关于」、
 exe 的 Windows 版本资源和发布压缩包文件名。
 
@@ -68,12 +78,17 @@ homepod_streamer/
   capture.py      WASAPI 环回采集（soundcard）、提示音生成器
   streamer.py     AirPlay/RAOP 引擎：连接、RTP 推流、延迟补丁、缓冲管理
   raw_source.py   原始 PCM 数据源（配合 pyatv 的 stream_file）
-  ui.py           全部界面，Qt 控件一律自绘（无图片资源）
+  ui.py           全部界面，Qt 控件一律自绘（除应用图标外无图片资源）
   main.py         命令行入口
   version.py      版本号单一来源
   autostart.py    开机自启（注册表 HKCU\...\Run）
   config.py       配置读写（%APPDATA%\HomePodStreamer\config.json）
   README.md       详细说明：延迟构成、故障排查、实现细节
+assets/
+  icon.ico        应用图标（10 个尺寸，16~256px；exe 文件图标 + 窗口 + 托盘共用）
+  icon.png        图标预览
+tools/
+  make_icon.py    图标生成脚本（Pillow 绘制，分三档画法适配小尺寸）
 build_exe.py      一键打包 + 生成发布压缩包
 ```
 

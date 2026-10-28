@@ -7,12 +7,13 @@
 不做多页签、不藏设置。视觉参考 iOS/macOS 的「隔空播放」面板与现代桌面音频 App
 （Sonos / Spotify Connect）：深色底、单一强调渐变、圆角卡片、状态点。
 
-实现上刻意不引入任何图片资源与第三方主题包：
-- 滑块、开关、分段控件、频谱条、图标全部用 QPainter 现画，高 DPI 自适应、不增加体积；
+实现上刻意不引入任何第三方主题包与图片素材（应用图标 `assets/icon.ico` 除外）：
+- 滑块、开关、分段控件、频谱条、扬声器符号全部用 QPainter 现画，高 DPI 自适应、不增加体积；
 - 只用一个集中调色板（见下方常量），换肤只需改这几个颜色。
 """
 import sys
 import threading
+from pathlib import Path
 
 from PyQt6.QtCore import (
     QEasingCurve,
@@ -114,8 +115,37 @@ def _draw_speaker(p: QPainter, r: QRectF, color: QColor, with_waves=True) -> Non
     p.restore()
 
 
+def _icon_file() -> Path | None:
+    """定位随程序分发的图标文件。
+
+    打包后资源在 sys._MEIPASS/assets 下；源码运行时在项目根目录。
+    """
+    roots = []
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        roots.append(Path(meipass))
+    here = Path(__file__).resolve()
+    roots += [here.parent.parent, here.parent]      # 项目根 / 包内
+    for root in roots:
+        for name in ("assets/icon.ico", "assets/icon.png"):
+            p = root / name
+            if p.is_file():
+                return p
+    return None
+
+
 def _round_icon(size: int) -> QPixmap:
-    """应用图标：深色圆角方块 + 强调渐变扬声器。"""
+    """应用图标：优先取 assets/icon.ico 中对应尺寸，取不到时退回自绘。"""
+    path = _icon_file()
+    if path is not None:
+        pm = QIcon(str(path)).pixmap(size, size)
+        if not pm.isNull():
+            return pm
+    return _drawn_icon(size)
+
+
+def _drawn_icon(size: int) -> QPixmap:
+    """兜底图标：深色圆角方块 + 强调渐变扬声器（无图标文件时使用）。"""
     pm = QPixmap(size, size)
     pm.fill(Qt.GlobalColor.transparent)
     p = QPainter(pm)
@@ -132,8 +162,33 @@ def _round_icon(size: int) -> QPixmap:
     return pm
 
 
+def _draw_pod(p: QPainter, r: QRectF, color: QColor, waves=True) -> None:
+    """在给定矩形内画 HomePod 造型：胶囊剪影 + 两侧声波（与应用图标同一套几何）。"""
+    p.save()
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    w = r.width() * 0.36
+    h = r.height() * 0.62
+    cx, cy = r.center().x(), r.center().y()
+    pill = QRectF(cx - w / 2, cy - h / 2, w, h)
+    p.drawRoundedRect(pill, w / 2, w / 2)
+
+    if waves:
+        pen = QPen(QColor(color.red(), color.green(), color.blue(), 205))
+        pen.setWidthF(max(1.0, r.width() * 0.045))
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        for frac in (0.30, 0.40):
+            rr = r.width() * frac
+            box = QRectF(cx - rr, cy - rr, rr * 2, rr * 2)
+            for mid in (0, 180):        # 左右两侧各一道弧
+                p.drawArc(box, int((mid - 28) * 16), int(56 * 16))
+    p.restore()
+
+
 class GradientAvatar(QWidget):
-    """圆角渐变方块 + 居中扬声器，用于“正在投送”卡片的左侧图标。"""
+    """圆角渐变方块 + 居中 HomePod 造型，用于“正在投送”卡片的左侧图标。"""
 
     def __init__(self, size=54, radius=16, parent=None):
         super().__init__(parent)
@@ -162,8 +217,8 @@ class GradientAvatar(QWidget):
         p.setBrush(QBrush(grad))
         p.drawRoundedRect(r, self._radius, self._radius)
         ink = QColor("#FFFFFF") if not self._dim else QColor("#7C879C")
-        _draw_speaker(p, QRectF(self._size * 0.26, self._size * 0.26,
-                                self._size * 0.48, self._size * 0.48), ink)
+        _draw_pod(p, QRectF(self._size * 0.18, self._size * 0.18,
+                            self._size * 0.64, self._size * 0.64), ink)
 
 
 class EqBars(QWidget):
@@ -1272,6 +1327,9 @@ class MainWindow(QWidget):
 
 def run_gui(minimized=False):
     app = QApplication(sys.argv)
+    # 应用级图标：弹窗、任务栏、Alt+Tab 都会继承（多尺寸 ico 交给 Qt 自己挑）
+    ico = _icon_file()
+    app.setWindowIcon(QIcon(str(ico)) if ico else QIcon(_drawn_icon(256)))
     app.setQuitOnLastWindowClosed(False)
     w = MainWindow(minimized=minimized)
     if not minimized:

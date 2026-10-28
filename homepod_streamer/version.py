@@ -13,10 +13,10 @@
   修订号：只修 bug / 调参数
 """
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 # 该版本的简要说明，显示在“关于”里，方便回顾每次改了什么
-VERSION_NOTE = "修复点了投送却完全没声音（srptools 2.0 与 pyatv 不兼容）；静音测试改为有声测试音"
+VERSION_NOTE = "新增应用图标（HomePod 造型），exe 文件图标、窗口、托盘统一使用"
 
 
 def version_string() -> str:
