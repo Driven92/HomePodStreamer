@@ -1,0 +1,9 @@
+pyatv>=0.18.0
+# pyatv 0.18.0 仍按旧签名调用 SRPClientSession(ctx, private)，而 srptools 2.0.0
+# 改成了仅限关键字参数，装上 2.x 会在连接设备时抛
+# "TypeError: SRPClientSession.__init__() takes 2 positional arguments but 3 were given"
+# （表现为点了投送没报错、但完全没声音）。必须锁在 1.x。
+srptools<2
+soundcard>=0.4.6
+numpy>=1.11
+PyQt6>=6.5

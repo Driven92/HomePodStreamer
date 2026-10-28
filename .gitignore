@@ -1,0 +1,33 @@
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 打包中间产物与输出
+build/
+dist/
+*.spec
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# 运行日志与本地配置
+*.log
+app.log*
+config.json
+
+# 界面预览图（本地临时截图）
+ui_*.png
+
+# 工作目录私有笔记（不公开）
+.workbuddy/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
